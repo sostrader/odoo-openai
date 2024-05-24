@@ -98,8 +98,22 @@ class OpenAiCompletion(models.Model):
                     result_id.exec_post_process(answer)
                 result_ids.append(result_id)
             else:
-                return [choice.message.content for choice in res.choices]
+                try:
+                    return self.get_result_content(res)
+                except Exception as err:
+                    _logger.error(err, exc_info=True)
         return result_ids
+
+    def get_result_content(self, res):
+        def _extract_json(content):
+            start_pos = content.find('{')
+            end_post = content.rfind('}') + 1
+            return content[start_pos:end_post]
+
+        if self.response_format == 'json_object':
+            return [_extract_json(choice.message.content) for choice in res.choices]
+        return [choice.message.content for choice in res.choices]
+
 
     def run_tool_call(self, tool_call):
         tool_name = tool_call.function.name
