@@ -14,49 +14,67 @@ _logger = logging.getLogger(__name__)
 
 
 class OpenAiMixin(models.AbstractModel):
-    _name = 'openai.mixin'
-    _description = 'OpenAI Mixin'
-    _inherit = ['mail.render.mixin']
+    _name = "openai.mixin"
+    _description = "OpenAI Mixin"
+    _inherit = ["mail.render.mixin"]
 
     name = fields.Char()
     active = fields.Boolean(default=True)
-    model_id = fields.Many2one('ir.model', string='Model', required=True, ondelete='cascade')
+    model_id = fields.Many2one(
+        "ir.model", string="Model", required=True, ondelete="cascade"
+    )
     domain = fields.Char()
     save_on_target_field = fields.Boolean()
-    target_field_id = fields.Many2one('ir.model.fields', string='Target Field')
+    target_field_id = fields.Many2one("ir.model.fields", string="Target Field")
     prompt_template = fields.Text()
-    prompt_template_id = fields.Many2one('ir.ui.view', string='Prompt Template View')
+    prompt_template_id = fields.Many2one("ir.ui.view", string="Prompt Template View")
     n = fields.Integer(default=1)
-    answer_lang_id = fields.Many2one('res.lang', string='Answer Language', context={'active_test': False})
+    answer_lang_id = fields.Many2one(
+        "res.lang", string="Answer Language", context={"active_test": False}
+    )
     test_prompt = fields.Text(readonly=True)
 
     @api.model
     def get_openai(self):
-        api_key = self.env['ir.config_parameter'].sudo().get_param('openai_api_key')
+        api_key = self.env["ir.config_parameter"].sudo().get_param("openai_api_key")
+        base_url = (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("openai_base_url", "https://api.openai.com/v1")
+        )
         if not api_key:
-            raise UserError(_('OpenAI API key is required.'))
-        client = OpenAI(api_key=api_key)
+            raise UserError(_("OpenAI API key is required."))
+        client = OpenAI(api_key=api_key, base_url=base_url)
         return client
 
     def get_prompt(self, rec_id=0):
-        context = {'html2plaintext': html2plaintext}
+        context = {"html2plaintext": html2plaintext}
         lang = self.env.lang
-        answer_lang_id = self.answer_lang_id or self.env['res.lang']._lang_get(lang)
+        answer_lang_id = self.answer_lang_id or self.env["res.lang"]._lang_get(lang)
         if answer_lang_id:
-            context['answer_lang'] = answer_lang_id.name
+            context["answer_lang"] = answer_lang_id.name
         if self.prompt_template_id:
-            prompt = self._render_template_qweb_view(self.prompt_template_id.xml_id, self.model_id.model, [rec_id],
-                                                     add_context=context)
+            prompt = self._render_template_qweb_view(
+                self.prompt_template_id.xml_id,
+                self.model_id.model,
+                [rec_id],
+                add_context=context,
+            )
         elif self.prompt_template:
-            prompt = self._render_template_qweb(self.prompt_template, self.model_id.model, [rec_id],
-                                                add_context=context)
+            prompt = self._render_template_qweb(
+                self.prompt_template, self.model_id.model, [rec_id], add_context=context
+            )
         else:
-            raise UserError(_('A prompt template is required'))
+            raise UserError(_("A prompt template is required"))
 
         return prompt[rec_id].strip()
 
     def get_records(self, limit=0):
-        domain = safe_eval(self.domain, SAFE_EVAL_BASE, {'self': self}) if self.domain else []
+        domain = (
+            safe_eval(self.domain, SAFE_EVAL_BASE, {"self": self})
+            if self.domain
+            else []
+        )
         rec_ids = self.env[self.model_id.model].search(domain, limit=limit)
         return rec_ids
 

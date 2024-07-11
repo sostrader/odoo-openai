@@ -9,7 +9,14 @@ _logger = logging.getLogger(__name__)
 
 
 class ResConfigSettings(models.TransientModel):
-    _inherit = 'res.config.settings'
+    _inherit = "res.config.settings"
 
-    openai_api_key = fields.Char(string="OpenAI API Key", config_parameter='openai_api_key')
-    openai_organization_id = fields.Char(string="OpenAI Organisation ID", config_parameter='openai_organization_id')
+    openai_api_key = fields.Char(
+        string="OpenAI API Key", config_parameter="openai_api_key"
+    )
+    openai_organization_id = fields.Char(
+        string="OpenAI Organisation ID", config_parameter="openai_organization_id"
+    )
+    openai_base_url = fields.Char(
+        string="OpenAI Base URL", config_parameter="openai_base_url"
+    )
